@@ -1,0 +1,6 @@
+@Example.Service.Converter_HostAddress = http://localhost:5179
+
+GET {{Example.Service.Converter_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

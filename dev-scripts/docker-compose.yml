@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  schism-db:
+    container_name: schism-db
+    env_file: 
+        - ./.env
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - schism
+
+  schism-migrator:
+    env_file: 
+        - ./.env
+    build:
+      context: ./../
+      dockerfile: ./Schism.Hub.Migrations.Pgsql/Dockerfile
+    depends_on:
+      - schism-db
+    networks:
+      - schism
+
+  schism-hub:
+    container_name: schism-hub
+    env_file: 
+        - ./.env
+    build:
+      context: ./../
+      dockerfile: ./Schism.Hub/Dockerfile
+    ports:
+      - 30101:443
+      - 30100:80
+    networks:
+      - schism
+    depends_on:
+      - schism-migrator
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+;http://+
+
+  sb-emulator:
+    container_name: sb-emulator
+    env_file: 
+        - ./.env
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    volumes:
+      - "./config.json:/ServiceBus_Emulator/ConfigFiles/Config.json"
+    ports:
+      - "5672:5672"
+    depends_on:
+      - sqledge
+    networks:
+      - schism
+
+  sqledge:
+    container_name: sqledge
+    env_file: 
+        - ./.env
+    image: "mcr.microsoft.com/azure-sql-edge:latest"
+    networks:
+      - schism
+
+networks:
+  schism:
+    name: schism
+    driver: bridge
+
+volumes:
+  pgdata:

@@ -1,0 +1,6 @@
+@Example.Service.Math_HostAddress = http://localhost:5170
+
+GET {{Example.Service.Math_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

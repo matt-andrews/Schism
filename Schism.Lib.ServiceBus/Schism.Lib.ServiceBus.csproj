@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Version>1.0.0</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Schism.Lib.Core\Schism.Lib.Core.csproj" />
+	</ItemGroup>
+</Project>

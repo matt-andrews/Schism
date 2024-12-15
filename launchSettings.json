@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "Docker Compose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "example.service": "StartDebugging",
+        "example.service.addition": "StartDebugging",
+        "example.service.complex": "StartDebugging",
+        "example.service.subtraction": "StartDebugging",
+        "nunu.hub": "StartDebugging"
+      }
+    }
+  }
+}
