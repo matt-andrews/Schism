@@ -135,7 +135,7 @@ public static class Extensions
     /// <param name="builder"></param>
     /// <param name="factory"></param>
     /// <returns><see cref="SchismBuilder"/></returns>
-    public static SchismBuilder WithFeature(this SchismBuilder builder, Func<IServiceProvider, IStringTranslationFeature> factory)
+    public static SchismBuilder WithTranslationFeature(this SchismBuilder builder, Func<IServiceProvider, IStringTranslationFeature> factory)
     {
         builder.TranslationFeatures.AddFeature(factory);
         return builder;
@@ -180,6 +180,19 @@ public static class Extensions
     public static SchismBuilder WithDefaultSerializer(this SchismBuilder builder, ISchismSerializer customSerializer)
     {
         builder.DefaultSerializer = customSerializer;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configure a serializer for a specific host
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="clientId"></param>
+    /// <param name="factory"></param>
+    /// <returns><see cref="SchismBuilder"/></returns>
+    public static SchismBuilder WithSerializer(this SchismBuilder builder, string clientId, Func<IServiceProvider, ISchismSerializer> factory)
+    {
+        builder.SerializationFeatures.AddFeature(clientId, factory);
         return builder;
     }
 

@@ -6,5 +6,8 @@ namespace Schism.Lib.Core;
 [AttributeUsage(AttributeTargets.Method, Inherited = true)]
 public abstract class SchismAttribute : Attribute
 {
+    /// <summary>
+    /// The priority at which requests to this connection will be made
+    /// </summary>
     public virtual int Priority { get; set; } = 100;
 }
