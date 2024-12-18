@@ -39,7 +39,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example.Service.Converter",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schism.Hub.Migrations.Pgsql", "Schism.Hub.Migrations.Pgsql\Schism.Hub.Migrations.Pgsql.csproj", "{71094E8E-13B5-45C6-A51D-9B956CC70C47}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9A1F38DC-886F-4A56-8796-3DE536341B55}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".sln", ".sln", "{9A1F38DC-886F-4A56-8796-3DE536341B55}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		README.md = README.md

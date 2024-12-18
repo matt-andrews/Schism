@@ -8,7 +8,7 @@
 - [ ] Add workflow for Hub image push to repository
 - [ ] Add workflow for building nuget packages
 - [ ] Add docker/nuget instructions to readme
-- [ ] Split readme into lib specifics
+- [x] Split readme into lib specifics
 - [ ] Contribution?
 
 ## Summary
@@ -17,63 +17,95 @@
 
 > **schism** _noun_ /ˈs(k)izəm/ : a split or division between strongly opposed sections or parties, caused by differences in opinion or belief.
 
+## Concepts
+
+With the large variety of choices for communication these days, Schism aims to abstract communication in such a way that all a consumer needs to know when accessing an endpoint is the contract for the endpoint itself. All the details about the endpoint such as if its a POST request over HTTP, or an Azure Service Bus message - those are left to the server to decide. 
+
+How this works is by standing up a locator service we've called **The Hub** - host applications register their properties with the Hub, and the client applications periodically check in with the Hub to understand the hosts it wishes to talk to.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/schism-hub-diag2-dark.png">
+  <img alt="A simple diagram of the client-host-hub relationship" src="./assets/schism-hub-diag2-light.png">
+</picture>
+
+As you can see in the crude diagram above, the hosts register with the hub, the clients take that information and then make direct requests to the hosts.
+
+This has some benefits:
+* Clients don't need to know anything about _how_ to connect to a host - the Hub tells them that information
+* Hosts can advertise information about their API's like version, endpoints etc. giving clients more flexibility in how they communicate depending on your circumstances
+
+Given the above system, we can use language tooling to further simplify the communication between services. Given a shared interface, a client can make a request like so:
+```csharp
+//client application
+private readonly ISchismClientFactory _factory;
+public async Task Add(int a, int b)
+{                                        //shared interface
+    var hostClient = _factory.GetClientFor<IMathContract>();
+    var result = await hostClient.Add(new AdditionRequest(a, b));
+    Console.WriteLine(result.Data);
+}
+```
+The details of how that request is made are completely abstracted from the implementation. All the client cares about is printing the result of `a + b`, not which protocol it used to get there.
+
 ## Getting Started
 
 ### The Hub
 
-The keystone component to **Schism** is the Hub. This is a web service that sits in your network of services acting as a service locator.
-
-You can run the Hub with the following command
-
+You can spin up the Hub locally, or host it in the cloud:
 ```docker
 TODO: docker run
 ```
-
-> [!IMPORTANT]
-> You will also need a database for the hub. Currently PostgreSql is supported.
+The Hub will also require a database, currently only PostgreSql is supported. The database will need migrations applied to it
+```
+TODO: apply migrations
+```
 
 ### Configuration
 
-Your hosts are any applications that are accepting a request or message, such as an ASP.Core web application.
-
-In your `Program.cs` file you can register the **Schism** builder:
-
-```csharp
-builder.Services
-    .AddSchism(typeof(Program).Assembly, builder.Configuration)
-    //Add clients/hosts here
-    .Build();
+Your applications will need to reference the Core library
+```
+//TODO: add package
 ```
 
-For instance, our web application has controllers so we use the following:
+And you'll also need supporting libraries depending on your needs
 
-```csharp
-builder.Services
-    .AddSchism(typeof(Program).Assembly, builder.Configuration)
-    .WithHttpHost()
-    .Build();
-```
+Library|Docs
+-|-
+Schism.Lib.Http|[docs](./Schism.Lib.Http)
+Schism.Lib.ServiceBus|[docs](./Schism.Lib.ServiceBus)
 
-This will automatically register all your controller endpoints with the hub so that other applications can access them.
-
-You will also need to setup some environment variables in your `appsettings.json`
-
+In your `appsettings.json` you'll need to add some variables:
 ```json
 {
   "Schism": {
     //The URI pointing to the Hub
     "HubUri": "http://host.docker.internal:30100",
     //The URI that targets this application
-    "Host": "http://host.docker.internal:30300"
+    //Client-only applications do not require this to be defined
+    "Host": "http://host.docker.internal:30300",
+    //Optional: defaults to 300, the amount in 
+    //seconds that the client will cache its hub response
+    "Refresh": 300
   }
 }
 ```
 
-This is the bare minimum setup required for **Schism** to begin hosting.
+In your Startup/Program.cs you'll need to add the `SchismBuilder` and build your application:
+```csharp
+builder.Services
+    .AddSchism(typeof(Program).Assembly, builder.Configuration)
+    //Add client/host setup here
+    .Build();
+```
 
-### Client Requests
+The rest of the the setup will be dependent on whichever Schism libraries you use.
 
-Once you have your host setup, we need to configure your client. There are a variety of methods to accomplish this, depending on your needs.
+### Client Usage
+
+As a client, you will have access to the `ISchismClientFactory` from your DI container, from there you can chose from a few different implementations to send a request. You don't have to commit to one implementation, and can mix and match as you please.
+
+> [!NOTE]
+> The following examples assume the HTTP library is being used
 
 <details open>
 <summary>Auto-mapped Concrete Classes</summary>
@@ -81,9 +113,7 @@ Once you have your host setup, we need to configure your client. There are a var
 #### Auto-mapped Concrete Contracts
 With contracts you can interact with your host using strongly typed interfaces and very little boilerplate. The downside to this method is it tightly couples this library with your code on both the host and the client.
 
-This method requires an additional shared project, which includes interfaces for your controllers. These interfaces must inherit from `ISchismContract` and have the attribute `[SchismContract]`
-
-In your shared client library create a contract interface:
+In your shared host/client library create a contract interface:
 
 ```csharp
 //The ClientId property should describe the ClientId of the host
@@ -102,7 +132,7 @@ public record AddResponse
 }
 ```
 
-In your host application called `Example.WebApp`, your controller would look like this:
+In your host application called `Example.WebApp`, your controller could look like this:
 
 ```csharp
 
@@ -146,7 +176,7 @@ public async Task DoMath(int a, int b)
 
 Concrete contracts don't require being implemented on the host! This has the downside of potential for breaking changes being implemented since you lose the strong typing of your contract implementations.
 
-In your shared client library create a contract interface:
+In your shared library create a contract interface:
 
 ```csharp
 //The ClientId property should describe the ClientId of the host
@@ -209,7 +239,7 @@ public async Task DoMath(int a, int b)
 
 #### Flexible string-based requests
 
-In case you want nothing to do with concrete contracts, you can create your requests simply by string locators. The downside to this method is its more verbose. The following example uses the above controller as an example
+In case you want nothing to do with concrete contracts, you can create your requests simply by string locators. The downside to this method is its more verbose and relies on strings. The following example uses the above controller as an example
 
 ```csharp
 //...
@@ -231,102 +261,11 @@ public async Task DoMath(int a, int b)
 
 </details>
 
-### Azure Service Bus
-
-So far we've only covered HTTP, lets talk about Service bus. The setup for Service bus is very similar:
-
-```csharp
-builder.Services
-    .AddSchism(typeof(Program).Assembly, builder.Configuration)
-    //...
-    .WithServiceBusHost()
-    .WithServiceBusClient()
-    //...
-    .Build();
-```
-
-Hosting for the Service Bus requires a method to be declared to accept the request.
-
-```csharp
-[ApiController]
-[Route("[controller]/[action]")]
-public class MyController : ControllerBase, IMyController
-{
-    //Connection can be omitted if a default service bus
-    //connection is defined in `.WithServiceBusHost(string)`
-    [SchismServiceBusQueue(Connection = "%MySbConnection%" Queue = "data-collection-queue")]
-    public Task<DataCollectionResponse?> DataCollection(DataCollectionRequest request)
-    {
-        //Do stuff
-    }
-}
-```
-
-> [!TIP]
-> Service bus hosts don't need to be controller actions, but it makes sense to keep _all_ entry points in controllers for consistency and for the ability to fallback!
-
-> [!WARNING]
-> You can have a return type on your service bus method to allow for fallbacks to HTTP, but the client will return `null` on a successful service bus request!
-
-## Customization
-
-**Schism** has several configuration options to meet your needs.
-
-### Custom Serialization
-
-You can configure both the default serializer, as well as register custom serializers for specific clients. First you must create a concrete type for `ISchismSerializer`, then you can register at startup:
-
-```csharp
-//SchismBuilder
-.WithDefaultSerializer(new MyCustomSerializer())
-.WithSerializer("My.WebApi", provider => {
-    return new MyCustomSerializer();
-});
-```
-
-> [!WARNING]
-> Custom serializers defined here **do not** affect how your ASP.Core web application deserializes HTTP requests!
-
-### String Translation
-
-Maybe you don't want to expose your service bus connection string to the hub, in that case you can use String Translation to get the value from a key vault or secure store:
-
-```csharp
-// Implmentation
-internal class MyStringTranslator(IKeyVault _keyVault) : IStringTranslationFeature
-{
-    private const string _prefix = "MyStringTranslator=";
-    public bool IsTranslatable(string str)
-    {
-        return str.StartsWith(_prefix);
-    }
-    //This method is called to resolve the string if the above
-    //condition is true
-    public async Task<string> Translate(string str)
-    {
-        str = str.Replace(_prefix, string.Empty);
-        return await _keyVault.GetSecret(str);
-    }
-}
-
-//Registration
-//SchismBuilder
-.WithFeature(provider => new MyStringTranslator(provider.GetRequiredService<IKeyVault>()))
-
-//Usage
-[SchismServiceBusQueue(Connection = "MyStringTranslator=MySbConnection" Queue = "data-collection-queue")]
-public Task MyServiceBusMethod(Request request)
-{
-    //do stuff
-}
-```
-
-> [!WARNING]
-> The above needs to be implemented and registered on both the client and the host!
-
 ## Future Plans
 
 - [ ] Performance improvements
-- [ ] More client/host support such as gRPC, MQTT, AMQP
+- [ ] More client/host support such as gRPC, MQTT, AMQP, Kafka
 - [ ] Better documentation
 - [ ] Support for other languages
+- [ ] More control over the concrete contract requests ad-hoc
+- [ ] Ability to glean information about the host such as version, status, etc.
