@@ -16,9 +16,12 @@ public sealed record SchismOptions
     public int Refresh { get; set; } = 300;
     /// <summary>
     /// The host for connecting to this application
-    /// <code>Required</code>
+    /// <code>Optional:</code>
+    /// on client-only applications
+    /// <code>Required:</code>
+    /// on host applications
     /// </summary>
-    public string Host { get; set; } = default!;
+    public string Host { get; set; } = "";
     /// <summary>
     /// The Client Id for pointing to this application
     /// <code>Default:</code>
@@ -45,6 +48,5 @@ public sealed record SchismOptions
         IConfigurationSection section = config.GetSection("Schism");
         section.Bind(this);
         ArgumentNullException.ThrowIfNull(nameof(HubUri));
-        ArgumentNullException.ThrowIfNull(nameof(Host));
     }
 }

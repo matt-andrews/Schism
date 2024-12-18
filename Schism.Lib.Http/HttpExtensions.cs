@@ -63,6 +63,10 @@ public static class HttpExtensions
     /// <returns><see cref="SchismBuilder"/></returns>
     public static SchismBuilder WithHttpHost(this SchismBuilder builder)
     {
+        if (string.IsNullOrWhiteSpace(builder.Options.Host))
+        {
+            throw new NullReferenceException("Host applications require the SchismBuilder.Host property to be set");
+        }
         ServiceProvider provider = builder.Services.BuildServiceProvider();
         IActionDescriptorCollectionProvider adcp = provider.GetRequiredService<IActionDescriptorCollectionProvider>();
         IEnumerable<ControllerActionDescriptor> descriptors = adcp.ActionDescriptors

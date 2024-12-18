@@ -52,6 +52,10 @@ public static class ServiceBusExtensions
     /// and an attribute connection string is not defined</exception>
     public static SchismBuilder WithServiceBusHost(this SchismBuilder builder, MethodInfo[] actions, string? defaultServiceBusConnection = null)
     {
+        if (string.IsNullOrWhiteSpace(builder.Options.Host))
+        {
+            throw new NullReferenceException("Host applications require the SchismBuilder.Host property to be set");
+        }
         List<ServiceBusHostConnection> sbConnections = [];
         List<ConnectionPoint> connections = [];
         foreach (MethodInfo method in actions)
